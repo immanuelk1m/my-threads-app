@@ -1,5 +1,7 @@
 import NextAuth from "next-auth";
-import type { NextAuthConfig, Profile, User, Account } from "next-auth"; // Add Account back
+import type { NextAuthConfig, Profile, User, Account } from "next-auth";
+import type { TokenSet } from "@auth/core/types"; // Import TokenSet type
+import type { OAuthConfig } from "@auth/core/providers/oauth"; // Import OAuthConfig type for context hint
 import { SupabaseClient, createClient } from "@supabase/supabase-js";
 
 // Supabase Admin 클라이언트 인스턴스 (필요시 생성)
@@ -47,7 +49,54 @@ export const authConfig = {
             client: {
                 token_endpoint_auth_method: 'client_secret_post',
             },
-            token: "https://graph.threads.net/oauth/access_token", // Revert to simple URL string
+            token: {
+                url: "https://graph.threads.net/oauth/access_token",
+                // Define the request function with proper typing
+                async request(context: {
+                    provider: OAuthConfig<ThreadsProfile>; // Use OAuthConfig for provider type hint
+                    params: URLSearchParams; // params are typically URLSearchParams
+                    checks: { pkce: string }; // checks contain pkce verifier
+                }): Promise<{ tokens: TokenSet }> { // Return type expected by Auth.js
+                    const { provider, params, checks } = context;
+
+                    const response = await fetch(provider.token.url!, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: new URLSearchParams({
+                            client_id: provider.clientId!,
+                            client_secret: provider.clientSecret!,
+                            grant_type: "authorization_code",
+                            code: params.get("code")!, // Get code from params
+                            redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/${provider.id}`, // Construct redirect_uri
+                            code_verifier: checks.pkce, // Use the correct pkce verifier name
+                        }),
+                    });
+
+                    const tokens: TokenSet & { user_id?: number, error?: string, error_message?: string } = await response.json();
+
+                    // 디버깅: 토큰 응답 로그
+                    console.log("Threads Token Response:", tokens);
+
+                    if (!response.ok || tokens.error || !tokens.access_token) {
+                        console.error("Threads Token Error:", tokens.error_message || tokens.error || "Failed to retrieve access token");
+                        throw new Error(tokens.error_message || "Failed to retrieve access token from Threads");
+                    }
+
+                    // Construct the TokenSet in the format Auth.js expects
+                    const constructedTokens: TokenSet = {
+                        access_token: tokens.access_token,
+                        token_type: "bearer", // Explicitly set token_type
+                        // Add other standard fields if returned by Threads (e.g., expires_in, scope)
+                        // expires_in: tokens.expires_in,
+                        // scope: tokens.scope,
+                    };
+
+                    // Return the tokens in the expected wrapper object
+                    return { tokens: constructedTokens };
+                }
+            },
             userinfo: {
                 url: "https://graph.threads.net/v1.0/me",
                 params: { fields: "id,username,name,threads_profile_picture_url,threads_biography" }, // 요청할 필드 명시
