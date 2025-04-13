@@ -43,7 +43,40 @@ export const authConfig = {
                     // response_type: "code" // OAuth 2.0 기본값
                 },
             },
-            token: "https://graph.threads.net/oauth/access_token",
+            token: {
+                url: "https://graph.threads.net/oauth/access_token",
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                async request(context: any) { // Add type annotation and disable eslint rule
+                    // context 객체에서 필요한 정보 추출
+                    const { provider, params, checks } = context;
+                    const tokens = await fetch(provider.token.url!, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/x-www-form-urlencoded",
+                        },
+                        body: new URLSearchParams({
+                            client_id: provider.clientId!,
+                            client_secret: provider.clientSecret!,
+                            grant_type: "authorization_code",
+                            code: params.code!,
+                            redirect_uri: provider.callbackUrl, // NextAuth가 자동으로 설정한 콜백 URL 사용
+                            // PKCE 사용 시 code_verifier 추가 (NextAuth가 자동으로 처리)
+                            // code_verifier: checks.code_verifier!,
+                        }),
+                    }).then(res => res.json());
+
+                    // 디버깅: 토큰 응답 로그
+                    console.log("Threads Token Response:", tokens);
+
+                    // 에러 처리 (Threads API 응답 형식에 따라 조정 필요)
+                    if (tokens.error) {
+                        console.error("Threads Token Error:", tokens.error_message || tokens.error);
+                        throw new Error(tokens.error_message || "Failed to retrieve access token from Threads");
+                    }
+
+                    return { tokens }; // NextAuth가 기대하는 형식으로 반환
+                }
+            },
             userinfo: {
                 url: "https://graph.threads.net/v1.0/me",
                 params: { fields: "id,username,name,threads_profile_picture_url,threads_biography" }, // 요청할 필드 명시
