@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import type { NextAuthConfig, Profile, Account, User } from "next-auth";
+import type { NextAuthConfig, Profile, User, Account } from "next-auth"; // Add Account back
 import { SupabaseClient, createClient } from "@supabase/supabase-js";
 
 // Supabase Admin 클라이언트 인스턴스 (필요시 생성)
@@ -47,6 +47,7 @@ export const authConfig = {
             userinfo: {
                 url: "https://graph.threads.net/v1.0/me",
                 params: { fields: "id,username,name,threads_profile_picture_url,threads_biography" }, // 요청할 필드 명시
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 async request(context: any) { // TODO: Use more specific type if available
                     // context.tokens.access_token 사용
                     const url = `${context.provider.userinfo?.url}?access_token=${context.tokens.access_token}&fields=${context.provider.userinfo?.params?.fields}`;
@@ -64,7 +65,8 @@ export const authConfig = {
                 }
             },
             // Threads API 응답을 Auth.js 표준 형식 + 필요한 정보로 매핑
-            profile(profile: ThreadsProfile, tokens: any): User {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            profile(profile: ThreadsProfile, _tokens: any): User { // Mark tokens as unused
                 // console.log("Threads Profile Raw:", profile); // 디버깅용 로그
                 // profile 콜백은 User 객체를 반환해야 합니다.
                 // id는 string 타입이어야 합니다. Threads API는 항상 id를 반환합니다.
@@ -81,7 +83,7 @@ export const authConfig = {
         // 다른 Provider 추가 가능 (예: Credentials 등)
     ],
     callbacks: {
-        async signIn({ user, account, profile }) {
+        async signIn({ user, account, profile }: { user: User, account: Account | null, profile?: Profile }) { // Add types for parameters
             // console.log("signIn Callback:", { user, account, profile }); // 디버깅용 로그
             if (account?.provider === "threads") {
                 const threadsUserId = user.id; // profile 콜백에서 매핑된 id (Threads ID)
@@ -127,7 +129,7 @@ export const authConfig = {
             // 다른 provider 또는 정상적인 경우 로그인 허용
             return true;
         },
-        async jwt({ token, user, account, profile, trigger }) {
+        async jwt({ token, user, account, profile: _profile, trigger }) { // Mark profile as unused
             // JWT 전략 사용 시, signIn 이후 호출됨
             // console.log("JWT Callback:", { token, user, account, profile, trigger }); // 디버깅용 로그
             if (trigger === 'signIn' && account?.provider === 'threads' && user?.id) {

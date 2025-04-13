@@ -1,6 +1,7 @@
 import { auth } from '@/auth'; // 서버용 auth 함수 임포트
 import { createClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import Image from 'next/image'; // next/image 임포트 추가
 
 // Supabase Admin 클라이언트 (서버 전용) - auth.ts와 중복되므로 별도 유틸리티 함수로 분리 권장
 const supabaseAdmin = createClient(
@@ -32,7 +33,7 @@ export default async function DashboardPage() {
 
     // Supabase에서 사용자 데이터 조회
     let threadsUserData: ThreadsUser | null = null;
-    let fetchError: any = null;
+    let fetchError: unknown = null; // 타입을 unknown으로 변경
 
     try {
         const { data, error } = await supabaseAdmin
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
 
     // 데이터 조회 실패 시 에러 처리
     if (fetchError || !threadsUserData) {
-        console.error('Error fetching threads user data from Supabase:', fetchError);
+        console.error('Error fetching threads user data from Supabase:', fetchError instanceof Error ? fetchError.message : fetchError); // instanceof Error로 타입 가드
         return (
             <div>
                 <h1>Dashboard</h1>
@@ -67,12 +68,13 @@ export default async function DashboardPage() {
             <h1>Dashboard</h1>
             <p>Welcome, {threadsUserData.username ?? 'User'}!</p>
             {threadsUserData.profile_image_url && (
-                <img
+                <Image // img 태그를 Image 컴포넌트로 변경
                     src={threadsUserData.profile_image_url}
                     alt={`${threadsUserData.username ?? 'User'}'s profile picture`}
                     width={100}
                     height={100}
                     style={{ borderRadius: '50%' }}
+                    priority // LCP 개선을 위해 priority 추가 (선택 사항)
                 />
             )}
             <h2>User Information (from Supabase):</h2>
