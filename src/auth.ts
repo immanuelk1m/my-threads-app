@@ -129,7 +129,8 @@ export const authConfig = {
             // 다른 provider 또는 정상적인 경우 로그인 허용
             return true;
         },
-        async jwt({ token, user, account, profile: _profile, trigger }) { // Mark profile as unused
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        async jwt({ token, user, account, profile: _profile, trigger }) { // Mark profile as unused and disable eslint rule
             // JWT 전략 사용 시, signIn 이후 호출됨
             // console.log("JWT Callback:", { token, user, account, profile, trigger }); // 디버깅용 로그
             if (trigger === 'signIn' && account?.provider === 'threads' && user?.id) {
