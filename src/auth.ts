@@ -75,10 +75,17 @@ export const authConfig = {
                         body: body.toString(),
                     });
 
-                    const shortLivedTokens: TokenSet & { user_id?: number, error?: string, error_message?: string } = await response.json();
+                    // 타입을 좀 더 유연하게 받거나, 필요시 인터페이스 확장 (token_type 추가)
+                    const shortLivedTokens: TokenSet & { user_id?: number, error?: string, error_message?: string, token_type?: string } = await response.json();
 
-                    // 디버깅: 단기 토큰 응답 로그
-                    console.log("Threads Short-Lived Token Response:", shortLivedTokens);
+                    // 디버깅: 단기 토큰 응답 로그 (원본)
+                    console.log("Threads Short-Lived Token Response (raw):", shortLivedTokens);
+
+                    // Auth.js가 단기 토큰 응답 자체를 검증할 수 있으므로, 여기서 token_type 추가
+                    // Threads API는 실제로 token_type을 반환하지 않으므로 수동으로 설정
+                    shortLivedTokens.token_type = "bearer";
+                    console.log("Threads Short-Lived Token Response (modified):", shortLivedTokens);
+
 
                     if (!response.ok || shortLivedTokens.error || !shortLivedTokens.access_token) {
                         console.error("Threads Short-Lived Token Error:", shortLivedTokens.error_message || shortLivedTokens.error || "Failed to retrieve short-lived access token");
