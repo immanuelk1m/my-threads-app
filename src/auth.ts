@@ -48,7 +48,7 @@ export const authConfig = {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 async request(context: any) { // Add type annotation and disable eslint rule
                     // context 객체에서 필요한 정보 추출
-                    const { provider, params } = context; // Remove unused 'checks'
+                    const { provider, params, checks } = context; // Re-introduce checks for PKCE
                     const tokens = await fetch(provider.token.url!, {
                         method: "POST",
                         headers: {
@@ -60,8 +60,8 @@ export const authConfig = {
                             grant_type: "authorization_code",
                             code: params.code!,
                             redirect_uri: provider.callbackUrl, // NextAuth가 자동으로 설정한 콜백 URL 사용
-                            // PKCE 사용 시 code_verifier 추가 (NextAuth가 자동으로 처리)
-                            // code_verifier: checks.code_verifier!,
+                            // PKCE 사용 시 code_verifier 추가
+                            code_verifier: checks.code_verifier!,
                         }),
                     }).then(res => res.json());
 
