@@ -34,8 +34,8 @@ export const authConfig = {
             id: "threads",
             name: "Threads",
             type: "oauth",
-            clientId: process.env.THREADS_CLIENT_ID,
-            clientSecret: process.env.THREADS_CLIENT_SECRET,
+            clientId: process.env.AUTH_THREADS_ID, // Vercel 환경 변수 이름과 일치시킴
+            clientSecret: process.env.AUTH_THREADS_SECRET, // Vercel 환경 변수 이름과 일치시킴
             authorization: {
                 url: "https://threads.net/oauth/authorize",
                 params: {
