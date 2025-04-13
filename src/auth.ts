@@ -159,7 +159,7 @@ export const authConfig = {
         strategy: "jwt", // JWT 세션 전략 사용
     },
     // pages: { signIn: '/login' }, // 커스텀 로그인 페이지 설정 시
-    // debug: process.env.NODE_ENV === 'development', // 개발 환경에서 디버그 로그 활성화
+    debug: true, // 디버그 로그 활성화 (문제 해결 후 false로 변경 권장)
 } satisfies NextAuthConfig;
 
 // authConfig를 사용하여 NextAuth 핸들러와 auth 함수를 export
