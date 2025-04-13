@@ -75,27 +75,47 @@ export const authConfig = {
                         body: body.toString(),
                     });
 
-                    const tokens: TokenSet & { user_id?: number, error?: string, error_message?: string } = await response.json();
+                    const shortLivedTokens: TokenSet & { user_id?: number, error?: string, error_message?: string } = await response.json();
 
-                    // 디버깅: 토큰 응답 로그
-                    console.log("Threads Token Response:", tokens);
+                    // 디버깅: 단기 토큰 응답 로그
+                    console.log("Threads Short-Lived Token Response:", shortLivedTokens);
 
-                    if (!response.ok || tokens.error || !tokens.access_token) {
-                        console.error("Threads Token Error:", tokens.error_message || tokens.error || "Failed to retrieve access token");
-                        throw new Error(tokens.error_message || "Failed to retrieve access token from Threads");
+                    if (!response.ok || shortLivedTokens.error || !shortLivedTokens.access_token) {
+                        console.error("Threads Short-Lived Token Error:", shortLivedTokens.error_message || shortLivedTokens.error || "Failed to retrieve short-lived access token");
+                        throw new Error(shortLivedTokens.error_message || "Failed to retrieve short-lived access token from Threads");
                     }
 
-                    // Construct the TokenSet in the format Auth.js expects
-                    const constructedTokens: TokenSet = {
-                        access_token: tokens.access_token,
-                        token_type: "bearer", // Explicitly set token_type because Threads doesn't return it
-                        // Add other standard fields if returned by Threads (e.g., expires_in, scope)
-                        // expires_in: tokens.expires_in,
-                        // scope: tokens.scope,
-                    };
+                    // --- 장기 토큰 교환 로직 시작 ---
+                    const longLivedTokenUrl = new URL("https://graph.threads.net/access_token");
+                    longLivedTokenUrl.searchParams.append("grant_type", "th_exchange_token");
+                    longLivedTokenUrl.searchParams.append("client_secret", provider.clientSecret!);
+                    longLivedTokenUrl.searchParams.append("access_token", shortLivedTokens.access_token);
 
-                    // Return the tokens in the expected wrapper object
-                    return { tokens: constructedTokens };
+                    const longLivedResponse = await fetch(longLivedTokenUrl.toString(), {
+                        method: "GET", // 장기 토큰 교환은 GET 요청
+                    });
+
+                    const longLivedTokens: TokenSet & { error?: { message: string } } = await longLivedResponse.json();
+
+                    // 디버깅: 장기 토큰 응답 로그
+                    console.log("Threads Long-Lived Token Response:", longLivedTokens);
+
+                    if (!longLivedResponse.ok || longLivedTokens.error || !longLivedTokens.access_token) {
+                        console.error("Threads Long-Lived Token Error:", longLivedTokens.error?.message || "Failed to retrieve long-lived access token");
+                        throw new Error(longLivedTokens.error?.message || "Failed to exchange for long-lived access token");
+                    }
+
+                    // Construct the final TokenSet with the long-lived token
+                    const finalTokens: TokenSet = {
+                        access_token: longLivedTokens.access_token,
+                        token_type: longLivedTokens.token_type ?? "bearer", // Threads가 반환하면 사용, 아니면 'bearer'
+                        expires_in: longLivedTokens.expires_in, // 장기 토큰 만료 시간
+                        // scope는 장기 토큰 응답에 없을 수 있음
+                    };
+                    // --- 장기 토큰 교환 로직 끝 ---
+
+                    // Return the long-lived tokens in the expected wrapper object
+                    return { tokens: finalTokens };
                 }
             },
             userinfo: {
