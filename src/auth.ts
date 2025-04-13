@@ -47,48 +47,7 @@ export const authConfig = {
             client: {
                 token_endpoint_auth_method: 'client_secret_post',
             },
-            token: {
-                url: "https://graph.threads.net/oauth/access_token",
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                async request(context: any) { // Add type annotation and disable eslint rule
-                    // context 객체에서 필요한 정보 추출
-                    const { provider, params, checks } = context; // Re-introduce checks for PKCE
-                    const tokens = await fetch(provider.token.url!, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded",
-                        },
-                        body: new URLSearchParams({
-                            client_id: provider.clientId!,
-                            client_secret: provider.clientSecret!,
-                            grant_type: "authorization_code",
-                            code: params.code!,
-                            redirect_uri: provider.callbackUrl, // NextAuth가 자동으로 설정한 콜백 URL 사용
-                            // PKCE 사용 시 code_verifier 추가
-                            code_verifier: checks.code_verifier!,
-                        }),
-                    }).then(res => res.json());
-
-                    // 디버깅: 토큰 응답 로그
-                    console.log("Threads Token Response:", tokens);
-
-                    // 에러 처리 (Threads API 응답 형식에 따라 조정 필요)
-                    if (!tokens.access_token) { // Check for access_token specifically
-                        console.error("Threads Token Error: No access_token received", tokens);
-                        throw new Error(tokens.error_message || "Failed to retrieve access token from Threads");
-                    }
-
-                    // NextAuth가 기대하는 형식으로 토큰 객체 구성
-                    const constructedTokens = {
-                        access_token: tokens.access_token,
-                        token_type: "bearer", // Threads API가 반환하지 않으므로 직접 추가
-                        // Threads API가 expires_in, refresh_token, scope 등을 반환하면 여기에 추가
-                        // user_id는 표준 토큰 속성이 아니므로 여기서는 제외
-                    };
-
-                    return { tokens: constructedTokens }; // 구성된 토큰 객체를 반환
-                }
-            },
+            token: "https://graph.threads.net/oauth/access_token", // Revert to simple URL string
             userinfo: {
                 url: "https://graph.threads.net/v1.0/me",
                 params: { fields: "id,username,name,threads_profile_picture_url,threads_biography" }, // 요청할 필드 명시
