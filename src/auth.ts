@@ -92,37 +92,48 @@ export const authConfig = {
                         throw new Error(shortLivedTokens.error_message || "Failed to retrieve short-lived access token from Threads");
                     }
 
-                    // --- 장기 토큰 교환 로직 시작 ---
-                    const longLivedTokenUrl = new URL("https://graph.threads.net/access_token");
-                    longLivedTokenUrl.searchParams.append("grant_type", "th_exchange_token");
-                    longLivedTokenUrl.searchParams.append("client_secret", provider.clientSecret!);
-                    longLivedTokenUrl.searchParams.append("access_token", shortLivedTokens.access_token);
+                    // --- Long-Lived Token Exchange ---
+                    const longLivedTokenUrl = "https://graph.threads.net/access_token";
+                    const longLivedBody = new URLSearchParams();
+                    longLivedBody.append("grant_type", "th_exchange_token");
+                    longLivedBody.append("client_secret", provider.clientSecret!);
+                    longLivedBody.append("access_token", shortLivedTokens.access_token!);
 
-                    const longLivedResponse = await fetch(longLivedTokenUrl.toString(), {
-                        method: "GET", // 장기 토큰 교환은 GET 요청
+                    const longLivedResponse = await fetch(longLivedTokenUrl, {
+                        method: "GET", // Threads 문서에 따르면 GET 요청
+                        // URL에 파라미터를 포함하여 GET 요청 전송
+                        // headers: { "Content-Type": "application/x-www-form-urlencoded" }, // GET 요청에는 불필요
+                        // body: longLivedBody.toString(), // GET 요청에는 불필요
                     });
+                    const longLivedUrlWithParams = `${longLivedTokenUrl}?${longLivedBody.toString()}`;
+                    const longLivedResponseGet = await fetch(longLivedUrlWithParams);
 
-                    const longLivedTokens: TokenSet & { error?: { message: string } } = await longLivedResponse.json();
+
+                    // 타입을 좀 더 명확히 정의 (expires_in 추가)
+                    const longLivedTokens: TokenSet & { expires_in?: number, error?: string, error_message?: string, token_type?: string } = await longLivedResponseGet.json();
 
                     // 디버깅: 장기 토큰 응답 로그
                     console.log("Threads Long-Lived Token Response:", longLivedTokens);
 
-                    if (!longLivedResponse.ok || longLivedTokens.error || !longLivedTokens.access_token) {
-                        console.error("Threads Long-Lived Token Error:", longLivedTokens.error?.message || "Failed to retrieve long-lived access token");
-                        throw new Error(longLivedTokens.error?.message || "Failed to exchange for long-lived access token");
+                    if (!longLivedResponseGet.ok || longLivedTokens.error || !longLivedTokens.access_token) {
+                        console.error("Threads Long-Lived Token Exchange Error:", longLivedTokens.error_message || longLivedTokens.error || "Failed to exchange for long-lived access token");
+                        throw new Error(longLivedTokens.error_message || "Failed to exchange for long-lived access token from Threads");
                     }
 
-                    // Construct the final TokenSet with the long-lived token
-                    const finalTokens: TokenSet = {
+                    // Auth.js가 기대하는 형식으로 long-lived token 정보 구성
+                    // expires_in (초)를 기반으로 expires_at (타임스탬프) 계산
+                    const tokensToReturn: TokenSet = {
                         access_token: longLivedTokens.access_token,
-                        token_type: longLivedTokens.token_type ?? "bearer", // Threads가 반환하면 사용, 아니면 'bearer'
-                        expires_in: longLivedTokens.expires_in, // 장기 토큰 만료 시간
-                        // scope는 장기 토큰 응답에 없을 수 있음
+                        token_type: longLivedTokens.token_type ?? "bearer", // 기본값 설정
+                        // scope: shortLivedTokens.scope, // 필요하다면 scope 유지
+                        // user_id: shortLivedTokens.user_id, // 필요하다면 user_id 유지
                     };
-                    // --- 장기 토큰 교환 로직 끝 ---
+                    if (longLivedTokens.expires_in) {
+                        tokensToReturn.expires_at = Math.floor(Date.now() / 1000) + longLivedTokens.expires_in;
+                    }
 
                     // Return the long-lived tokens in the expected wrapper object
-                    return { tokens: finalTokens };
+                    return { tokens: tokensToReturn };
                 }
             },
             userinfo: {
