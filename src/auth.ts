@@ -100,22 +100,7 @@ export const authConfig = {
             userinfo: {
                 url: "https://graph.threads.net/v1.0/me",
                 params: { fields: "id,username,name,threads_profile_picture_url,threads_biography" }, // 요청할 필드 명시
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                async request(context: any) { // TODO: Use more specific type if available
-                    // context.tokens.access_token 사용
-                    const url = `${context.provider.userinfo?.url}?access_token=${context.tokens.access_token}&fields=${context.provider.userinfo?.params?.fields}`;
-                    try {
-                        const response = await fetch(url);
-                        if (!response.ok) {
-                            console.error("Failed to fetch Threads user info:", await response.text());
-                            throw new Error(`Failed to fetch user info: ${response.statusText}`);
-                        }
-                        return await response.json();
-                    } catch (error) {
-                        console.error("Error during Threads user info request:", error);
-                        throw error; // 에러를 다시 던져 Auth.js가 처리하도록 함
-                    }
-                }
+                // Remove custom request function, rely on default handling
             },
             // Threads API 응답을 Auth.js 표준 형식 + 필요한 정보로 매핑
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
