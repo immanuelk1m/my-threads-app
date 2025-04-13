@@ -48,7 +48,7 @@ export const authConfig = {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 async request(context: any) { // Add type annotation and disable eslint rule
                     // context 객체에서 필요한 정보 추출
-                    const { provider, params, checks } = context;
+                    const { provider, params } = context; // Remove unused 'checks'
                     const tokens = await fetch(provider.token.url!, {
                         method: "POST",
                         headers: {
