@@ -73,12 +73,20 @@ export const authConfig = {
                     console.log("Threads Token Response:", tokens);
 
                     // 에러 처리 (Threads API 응답 형식에 따라 조정 필요)
-                    if (tokens.error) {
-                        console.error("Threads Token Error:", tokens.error_message || tokens.error);
+                    if (!tokens.access_token) { // Check for access_token specifically
+                        console.error("Threads Token Error: No access_token received", tokens);
                         throw new Error(tokens.error_message || "Failed to retrieve access token from Threads");
                     }
 
-                    return { tokens }; // NextAuth가 기대하는 형식으로 반환
+                    // NextAuth가 기대하는 형식으로 토큰 객체 구성
+                    const constructedTokens = {
+                        access_token: tokens.access_token,
+                        token_type: "bearer", // Threads API가 반환하지 않으므로 직접 추가
+                        // Threads API가 expires_in, refresh_token, scope 등을 반환하면 여기에 추가
+                        // user_id는 표준 토큰 속성이 아니므로 여기서는 제외
+                    };
+
+                    return { tokens: constructedTokens }; // 구성된 토큰 객체를 반환
                 }
             },
             userinfo: {
