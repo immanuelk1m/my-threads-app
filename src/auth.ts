@@ -43,6 +43,10 @@ export const authConfig = {
                     // response_type: "code" // OAuth 2.0 기본값
                 },
             },
+            // 명시적으로 클라이언트 자격 증명 전달 방식 지정
+            client: {
+                token_endpoint_auth_method: 'client_secret_post',
+            },
             token: {
                 url: "https://graph.threads.net/oauth/access_token",
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
