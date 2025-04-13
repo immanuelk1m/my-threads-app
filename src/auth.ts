@@ -87,7 +87,7 @@ export const authConfig = {
                     // Construct the TokenSet in the format Auth.js expects
                     const constructedTokens: TokenSet = {
                         access_token: tokens.access_token,
-                        token_type: "bearer", // Explicitly set token_type
+                        token_type: "bearer", // Explicitly set token_type because Threads doesn't return it
                         // Add other standard fields if returned by Threads (e.g., expires_in, scope)
                         // expires_in: tokens.expires_in,
                         // scope: tokens.scope,
