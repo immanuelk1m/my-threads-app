@@ -61,17 +61,17 @@ export const authConfig = {
 
                     const response = await fetch(provider.token.url!, {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/x-www-form-urlencoded",
-                        },
-                        body: new URLSearchParams({
-                            client_id: provider.clientId!,
-                            client_secret: provider.clientSecret!,
-                            grant_type: "authorization_code",
-                            code: params.get("code")!, // Get code from params
-                            redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/${provider.id}`, // Construct redirect_uri
-                            code_verifier: checks.pkce, // Use the correct pkce verifier name
-                        }),
+                        // Remove Content-Type header, fetch will set it for FormData
+                        body: (() => {
+                            const formData = new FormData();
+                            formData.append("client_id", provider.clientId!);
+                            formData.append("client_secret", provider.clientSecret!);
+                            formData.append("grant_type", "authorization_code");
+                            formData.append("code", params.get("code")!);
+                            formData.append("redirect_uri", `${process.env.NEXTAUTH_URL}/api/auth/callback/${provider.id}`);
+                            formData.append("code_verifier", checks.pkce);
+                            return formData;
+                        })(),
                     });
 
                     const tokens: TokenSet & { user_id?: number, error?: string, error_message?: string } = await response.json();
