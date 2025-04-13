@@ -99,23 +99,18 @@ export const authConfig = {
                     longLivedBody.append("client_secret", provider.clientSecret!);
                     longLivedBody.append("access_token", shortLivedTokens.access_token!);
 
-                    const longLivedResponse = await fetch(longLivedTokenUrl, {
-                        method: "GET", // Threads 문서에 따르면 GET 요청
-                        // URL에 파라미터를 포함하여 GET 요청 전송
-                        // headers: { "Content-Type": "application/x-www-form-urlencoded" }, // GET 요청에는 불필요
-                        // body: longLivedBody.toString(), // GET 요청에는 불필요
-                    });
+                    // GET 요청은 URL에 파라미터를 포함하여 전송합니다.
                     const longLivedUrlWithParams = `${longLivedTokenUrl}?${longLivedBody.toString()}`;
-                    const longLivedResponseGet = await fetch(longLivedUrlWithParams);
+                    const longLivedResponse = await fetch(longLivedUrlWithParams);
 
 
                     // 타입을 좀 더 명확히 정의 (expires_in 추가)
-                    const longLivedTokens: TokenSet & { expires_in?: number, error?: string, error_message?: string, token_type?: string } = await longLivedResponseGet.json();
+                    const longLivedTokens: TokenSet & { expires_in?: number, error?: string, error_message?: string, token_type?: string } = await longLivedResponse.json();
 
                     // 디버깅: 장기 토큰 응답 로그
                     console.log("Threads Long-Lived Token Response:", longLivedTokens);
 
-                    if (!longLivedResponseGet.ok || longLivedTokens.error || !longLivedTokens.access_token) {
+                    if (!longLivedResponse.ok || longLivedTokens.error || !longLivedTokens.access_token) {
                         console.error("Threads Long-Lived Token Exchange Error:", longLivedTokens.error_message || longLivedTokens.error || "Failed to exchange for long-lived access token");
                         throw new Error(longLivedTokens.error_message || "Failed to exchange for long-lived access token from Threads");
                     }
