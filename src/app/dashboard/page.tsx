@@ -40,7 +40,7 @@ export default async function DashboardPage() {
         const { data, error } = await supabaseAdmin
             .from('threads_users') // 테이블 이름
             .select('*') // 모든 컬럼 선택
-            .eq('id', userId) // 로그인한 사용자의 ID로 필터링
+            .eq('threads_user_id', userId) // Filter by the 'threads_user_id' column using the Threads ID from session
             .single<ThreadsUser>(); // 단일 결과 예상 및 타입 지정
 
         threadsUserData = data;
