@@ -37,10 +37,12 @@ export default async function DashboardPage() {
     let fetchError: unknown = null; // 타입을 unknown으로 변경
 
     try {
+        console.log(`[DASHBOARD] Querying Supabase for threads_user_id: ${userId} (Type: ${typeof userId})`); // Log userId and type
         const { data, error } = await supabaseAdmin
             .from('threads_users') // 테이블 이름
             .select('*') // 모든 컬럼 선택
-            .eq('threads_user_id', userId) // Filter by the 'threads_user_id' column using the Threads ID from session
+            // Ensure userId is converted to BigInt for comparison with bigint column
+            .eq('threads_user_id', BigInt(userId))
             .single<ThreadsUser>(); // 단일 결과 예상 및 타입 지정
 
         threadsUserData = data;
