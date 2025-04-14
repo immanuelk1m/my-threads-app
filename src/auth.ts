@@ -35,7 +35,11 @@ export const authOptions: AuthOptions = {
             url: "https://threads.net/oauth/authorize", // Verify this URL with Threads/Meta documentation
             params: { scope: "threads_basic" } // Verify required scopes
           },
-          token: "https://graph.threads.net/oauth/access_token", // Verify this URL
+          token: {
+            url: "https://graph.threads.net/oauth/access_token",
+            // Explicitly defining as an object, even with defaults, might help.
+            // We rely on NextAuth.js defaults for method (POST) and params (grant_type, etc.)
+          },
           userinfo: {
             url: "https://graph.threads.net/me", // Verify this URL and necessary fields
             params: { fields: "id,username" }  // Request basic user info
