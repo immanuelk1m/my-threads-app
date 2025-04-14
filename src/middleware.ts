@@ -1,6 +1,12 @@
-export { auth as middleware } from "@/auth"; // auth.ts에서 export한 auth 함수 사용
+import NextAuth from 'next-auth';
+import { authConfig } from '@/auth.config'; // Import config directly
 
-// 특정 경로만 보호하도록 matcher 설정
+// Initialize NextAuth with the config, but only use the middleware export part
+const { auth: middleware } = NextAuth(authConfig);
+
+export { middleware }; // Export the middleware function
+
+// Keep the existing config for matching paths
 export const config = {
     matcher: [
         /*
