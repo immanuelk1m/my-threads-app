@@ -25,6 +25,36 @@ declare module "next-auth/jwt" {
 // Define AuthOptions for NextAuth v4
 export const authOptions: AuthOptions = {
     providers: [
+        {
+          id: "threads",
+          name: "Threads",
+          type: "oauth",
+          clientId: process.env.AUTH_THREADS_ID,
+          clientSecret: process.env.AUTH_THREADS_SECRET,
+          authorization: {
+            url: "https://threads.net/oauth/authorize", // Verify this URL with Threads/Meta documentation
+            params: { scope: "threads_basic" } // Verify required scopes
+          },
+          token: "https://graph.threads.net/oauth/access_token", // Verify this URL
+          userinfo: {
+            url: "https://graph.threads.net/me", // Verify this URL and necessary fields
+            params: { fields: "id,username" }  // Request basic user info
+            // The userinfo request and basic parsing are often handled automatically
+            // by NextAuth/Auth.js when url and params are provided.
+            // Custom request logic is removed to rely on standard behavior first.
+          },
+          profile(profile: { id: string; username: string }) { // Use a specific type based on userinfo fields
+            // This function maps the userinfo response (profile) to the NextAuth User object.
+            // Ensure the fields match the structure returned by the Threads API userinfo endpoint.
+            return {
+              id: profile.id, // Map the 'id' from Threads API response
+              name: profile.username, // Map the 'username' from Threads API response to 'name'
+              // email: profile.email, // Map email if available and needed
+              // image: profile.profile_picture_url, // Map image if available and needed
+            };
+          }
+        }, // End of Threads Provider
+
         // Add a dummy Credentials provider for basic setup
         CredentialsProvider({
             name: "Credentials",
