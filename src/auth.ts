@@ -37,8 +37,49 @@ export const authOptions: AuthOptions = {
           },
           token: {
             url: "https://graph.threads.net/oauth/access_token",
-            // Explicitly defining as an object, even with defaults, might help.
-            // We rely on NextAuth.js defaults for method (POST) and params (grant_type, etc.)
+            async request(context) {
+              // context contains client_id, client_secret, params (code, redirect_uri), etc.
+              console.log("[DEBUG] Token Request Context Params:", context.params);
+              console.log("[DEBUG] Token Request Client ID:", context.provider.clientId);
+              console.log("[DEBUG] Token Request Redirect URI:", context.params.redirect_uri);
+
+              const body = new URLSearchParams();
+              body.append('client_id', context.provider.clientId!);
+              body.append('client_secret', context.provider.clientSecret!);
+              body.append('grant_type', 'authorization_code');
+              body.append('code', context.params.code!);
+              body.append('redirect_uri', context.provider.callbackUrl!); // Use configured callbackUrl
+
+              console.log("[DEBUG] Sending Token Request Body:", body.toString());
+
+              try {
+                const response = await fetch("https://graph.threads.net/oauth/access_token", { // Use the known URL directly
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: body,
+                });
+
+                const responseBody = await response.text(); // Read body as text first for logging
+                console.log("[DEBUG] Token Response Status:", response.status);
+                console.log("[DEBUG] Token Response Body:", responseBody);
+
+                if (!response.ok) {
+                  // Throw error to be caught by NextAuth.js, include response body for context
+                  throw new Error(`Token request failed with status ${response.status}: ${responseBody}`);
+                }
+
+                const tokens = JSON.parse(responseBody); // Parse JSON after logging
+                // Ensure the returned object matches NextAuth.js expectations (e.g., access_token, scope, id_token, etc.)
+                // Based on Threads docs, it returns access_token and user_id.
+                // NextAuth expects at least access_token. We might need to adjust if other fields are mandatory.
+                return { tokens }; // Return the parsed tokens wrapped in a 'tokens' object
+
+              } catch (error) {
+                console.error("[DEBUG] Error during custom token request:", error);
+                // Re-throw the error so NextAuth.js can handle it and show the error page
+                throw error;
+              }
+            }
           },
           userinfo: {
             url: "https://graph.threads.net/me", // Verify this URL and necessary fields
