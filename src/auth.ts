@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
-import type { Profile, User, Account, TokenSet, Session, DefaultSession, AuthOptions } from "next-auth";
-import type { OAuthConfig } from "next-auth/providers/oauth";
+import type { Profile, User, Account, Session, DefaultSession, AuthOptions } from "next-auth"; // Removed unused TokenSet
+// Removed unused OAuthConfig import
 import type { JWT } from "next-auth/jwt";
 
 // Augment the Session interface to include the user ID
