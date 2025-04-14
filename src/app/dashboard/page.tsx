@@ -85,8 +85,8 @@ export default async function DashboardPage() {
             {/* 로그아웃 버튼 추가 */}
             <form action={async () => {
                 'use server';
-                const { authSignOut } = await import('@/auth'); // 서버 액션에서 signOut 사용
-                await authSignOut({ redirectTo: '/' });
+                const { signOut } = await import('@/auth'); // 서버 액션에서 signOut 사용 (이름 변경)
+                await signOut({ redirectTo: '/' });
             }}>
                 <button type="submit" style={{ marginTop: '20px', padding: '10px', cursor: 'pointer' }}>
                     Logout
