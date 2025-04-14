@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import type { Profile, User, Account, TokenSet, Session, DefaultSession, AuthOptions } from "next-auth"; // Add AuthOptions
 import type { OAuthConfig } from "next-auth/providers/oauth";
 import type { JWT } from "next-auth/jwt";
-import { SupabaseClient, createClient } from "@supabase/supabase-js";
+// Removed SupabaseClient, createClient imports as they are not Edge compatible
 
 // Augment the Session interface to include the user ID
 declare module "next-auth" {
@@ -18,22 +18,7 @@ declare module "next-auth" {
 }
 
 
-// Supabase Admin 클라이언트 인스턴스 (필요시 생성)
-let supabaseAdmin: SupabaseClient | null = null;
-function getSupabaseAdmin() {
-    if (!supabaseAdmin) {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-        if (!supabaseUrl || !supabaseServiceRoleKey) {
-            throw new Error('Supabase URL or Service Role Key is missing in env');
-        }
-        supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-            auth: { persistSession: false } // 서버 측 클라이언트에서는 세션 유지 불필요
-        });
-    }
-    return supabaseAdmin;
-}
-
+// Removed Supabase Admin client logic - not Edge compatible
 // Threads API 응답 타입 정의 (제공된 정보 기반)
 interface ThreadsProfile extends Profile {
     id: string;
@@ -93,46 +78,16 @@ export const authConfig = {
     callbacks: {
         async signIn({ user, account, profile }: { user: User, account: Account | null, profile?: Profile }) { // Add types for parameters
             // console.log("signIn Callback:", { user, account, profile }); // 디버깅용 로그
+            // Simplified signIn callback for Edge compatibility
+            // Database operations should be handled elsewhere (e.g., API route, Server Action)
             if (account?.provider === "threads") {
-                const threadsUserId = user.id; // profile 콜백에서 매핑된 id (Threads ID)
-                const username = user.name; // profile 콜백에서 매핑된 name
-                const imageUrl = user.image; // profile 콜백에서 매핑된 image
-                // profile 객체에서 직접 접근도 가능 (signIn의 profile 파라미터)
-                const threadsProfile = profile as ThreadsProfile;
-                const biography = threadsProfile?.threads_biography; // profile 콜백에서 직접 가져오거나 매핑된 데이터 사용
-
-                if (!threadsUserId) {
-                    console.error("Threads user ID not found in signIn callback");
-                    return false; // 필수 정보 없으면 로그인 실패
+                // Basic check: Ensure user ID exists after profile mapping
+                if (!user?.id) {
+                     console.error("Threads user ID not found in signIn callback after profile mapping.");
+                     return false;
                 }
-
-                try {
-                    const supabase = getSupabaseAdmin();
-                    const { error } = await supabase
-                        .from("threads_users") // 5단계에서 생성할 테이블 이름
-                        .upsert(
-                            {
-                                id: threadsUserId, // Primary Key
-                                username: username,
-                                profile_image_url: imageUrl,
-                                name: threadsProfile?.name, // 추가 정보
-                                biography: biography, // 추가 정보
-                                updated_at: new Date().toISOString(),
-                            },
-                            {
-                                onConflict: "id", // id 컬럼 기준으로 중복 시 업데이트
-                            }
-                        );
-
-                    if (error) {
-                        console.error("Supabase upsert error:", error);
-                        return false; // DB 에러 시 로그인 실패
-                    }
-                    console.log("Threads user upserted successfully:", threadsUserId);
-                } catch (err) {
-                    console.error("Supabase operation failed:", err);
-                    return false; // 예외 발생 시 로그인 실패
-                }
+                // Allow sign in, actual DB sync needs to happen outside middleware/auth config
+                console.log("signIn allowed for Threads user:", user.id);
             }
             // 다른 provider 또는 정상적인 경우 로그인 허용
             return true;
