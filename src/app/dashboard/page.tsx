@@ -1,4 +1,5 @@
-import { auth } from '@/auth'; // 서버용 auth 함수 임포트
+import { getServerSession } from "next-auth/next"; // v4: Import getServerSession
+import { authOptions } from "@/auth"; // v4: Import authOptions
 import { createClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 import Image from 'next/image'; // next/image 임포트 추가
@@ -22,7 +23,7 @@ type ThreadsUser = {
 };
 
 export default async function DashboardPage() {
-    const session = await auth(); // 서버에서 세션 정보 가져오기
+    const session = await getServerSession(authOptions); // v4: Use getServerSession
 
     // 세션 또는 사용자 ID 없으면 로그인 페이지로 리디렉션
     if (!session?.user?.id) {
@@ -85,8 +86,8 @@ export default async function DashboardPage() {
             {/* 로그아웃 버튼 추가 */}
             <form action={async () => {
                 'use server';
-                const { signOut } = await import('@/auth'); // 서버 액션에서 signOut 사용 (이름 변경)
-                await signOut({ redirectTo: '/' });
+                // v4: Server actions typically redirect to the signout endpoint
+                redirect('/api/auth/signout');
             }}>
                 <button type="submit" style={{ marginTop: '20px', padding: '10px', cursor: 'pointer' }}>
                     Logout

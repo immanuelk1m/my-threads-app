@@ -1,3 +1,8 @@
-import { handlers } from "@/auth"; // Import handlers object
+import NextAuth from "next-auth";
+import { authOptions } from "@/auth"; // Import the v4 authOptions
 
-export const { GET, POST } = handlers; // Destructure GET and POST from handlers
+// In v4 App Router, you initialize NextAuth directly in the route handler
+const handler = NextAuth(authOptions);
+
+// Export the handler for GET and POST requests
+export { handler as GET, handler as POST };
