@@ -1,5 +1,5 @@
 // Merge imports and add Session type
-import NextAuth, { type AuthOptions, type User, type DefaultSession, type Session } from "next-auth";
+import { type AuthOptions, type User, type DefaultSession, type Session } from "next-auth"; // Removed unused default NextAuth import
 import { JWT } from "next-auth/jwt"; // Import JWT type for callback
 import CredentialsProvider from "next-auth/providers/credentials"; // Import a provider for v4
 
@@ -32,7 +32,7 @@ export const authOptions: AuthOptions = {
                 username: { label: "Username", type: "text" },
                 password: { label: "Password", type: "password" }
             },
-            async authorize(credentials, req) {
+            async authorize(credentials, _req) { // Mark req as unused
                 // Add your own logic here to find the user
                 // IMPORTANT: Returning null triggers an error page, returning a user object signs them in.
                 // For this fix, we just return a dummy user if credentials exist.
