@@ -74,6 +74,7 @@ export const authOptions: AuthOptions = {
         })
     ],
     secret: process.env.AUTH_SECRET, // Use AUTH_SECRET from environment variables
+    debug: true, // Enable NextAuth.js debug mode for detailed logs
     session: {
         strategy: "jwt", // Use JWT strategy for session management
     },
