@@ -75,59 +75,31 @@ export const authConfig = {
                         body: body.toString(),
                     });
 
-                    // 타입을 좀 더 유연하게 받거나, 필요시 인터페이스 확장 (token_type 추가)
-                    const shortLivedTokens: TokenSet & { user_id?: number, error?: string, error_message?: string, token_type?: string } = await response.json();
+                    // Parse the JSON response from Threads API
+                    const tokensFromThreads: { access_token?: string; user_id?: number | string; error?: string; error_message?: string } = await response.json();
 
-                    // 디버깅: 단기 토큰 응답 로그 (원본)
-                    console.log("Threads Short-Lived Token Response (raw):", shortLivedTokens);
+                    // Log the raw response for debugging
+                    console.log("Threads Token Response (raw):", tokensFromThreads);
 
-                    // Auth.js가 단기 토큰 응답 자체를 검증할 수 있으므로, 여기서 token_type 추가
-                    // Threads API는 실제로 token_type을 반환하지 않으므로 수동으로 설정
-                    shortLivedTokens.token_type = "bearer";
-                    console.log("Threads Short-Lived Token Response (modified):", shortLivedTokens);
-
-
-                    if (!response.ok || shortLivedTokens.error || !shortLivedTokens.access_token) {
-                        console.error("Threads Short-Lived Token Error:", shortLivedTokens.error_message || shortLivedTokens.error || "Failed to retrieve short-lived access token");
-                        throw new Error(shortLivedTokens.error_message || "Failed to retrieve short-lived access token from Threads");
+                    // Check for errors in the response
+                    if (!response.ok || tokensFromThreads.error || !tokensFromThreads.access_token) {
+                        console.error("Threads Token Error:", tokensFromThreads.error_message || tokensFromThreads.error || "Failed to retrieve access token");
+                        throw new Error(tokensFromThreads.error_message || "Failed to retrieve access token from Threads");
                     }
 
-                    // --- Long-Lived Token Exchange ---
-                    const longLivedTokenUrl = "https://graph.threads.net/access_token";
-                    const longLivedBody = new URLSearchParams();
-                    longLivedBody.append("grant_type", "th_exchange_token");
-                    longLivedBody.append("client_secret", provider.clientSecret!);
-                    longLivedBody.append("access_token", shortLivedTokens.access_token!);
-
-                    // GET 요청은 URL에 파라미터를 포함하여 전송합니다.
-                    const longLivedUrlWithParams = `${longLivedTokenUrl}?${longLivedBody.toString()}`;
-                    const longLivedResponse = await fetch(longLivedUrlWithParams);
-
-
-                    // 타입을 좀 더 명확히 정의 (expires_in 추가)
-                    const longLivedTokens: TokenSet & { expires_in?: number, error?: string, error_message?: string, token_type?: string } = await longLivedResponse.json();
-
-                    // 디버깅: 장기 토큰 응답 로그
-                    console.log("Threads Long-Lived Token Response:", longLivedTokens);
-
-                    if (!longLivedResponse.ok || longLivedTokens.error || !longLivedTokens.access_token) {
-                        console.error("Threads Long-Lived Token Exchange Error:", longLivedTokens.error_message || longLivedTokens.error || "Failed to exchange for long-lived access token");
-                        throw new Error(longLivedTokens.error_message || "Failed to exchange for long-lived access token from Threads");
-                    }
-
-                    // Auth.js가 기대하는 형식으로 long-lived token 정보 구성
-                    // expires_in (초)를 기반으로 expires_at (타임스탬프) 계산
+                    // Construct the TokenSet object expected by Auth.js
+                    // Manually add the 'token_type' as Threads API doesn't provide it
                     const tokensToReturn: TokenSet = {
-                        access_token: longLivedTokens.access_token,
-                        token_type: longLivedTokens.token_type ?? "bearer", // 기본값 설정
-                        // scope: shortLivedTokens.scope, // 필요하다면 scope 유지
-                        // user_id: shortLivedTokens.user_id, // 필요하다면 user_id 유지
+                        access_token: tokensFromThreads.access_token,
+                        token_type: "bearer", // Manually set token_type
+                        // Optionally include user_id if needed elsewhere, though not standard in TokenSet
+                        // user_id: tokensFromThreads.user_id?.toString(), // Ensure user_id is string if included
+                        // expires_at and scope can be added if provided/needed
                     };
-                    if (longLivedTokens.expires_in) {
-                        tokensToReturn.expires_at = Math.floor(Date.now() / 1000) + longLivedTokens.expires_in;
-                    }
 
-                    // Return the long-lived tokens in the expected wrapper object
+                    console.log("Tokens returned to Auth.js:", tokensToReturn);
+
+                    // Return the tokens wrapped in the expected structure
                     return { tokens: tokensToReturn };
                 }
             },
