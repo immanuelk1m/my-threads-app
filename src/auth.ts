@@ -80,5 +80,13 @@ export const authConfig: AuthOptions = {
     // debug: false, // Ensure debug is off
 };
 
-// Export handlers and auth function separately
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+// Initialize NextAuth
+const {
+    handlers: { GET, POST }, // Destructure GET and POST from handlers
+    auth,
+    signIn,
+    signOut,
+} = NextAuth(authConfig);
+
+// Export handlers and auth functions individually
+export { GET, POST, auth, signIn, signOut };
