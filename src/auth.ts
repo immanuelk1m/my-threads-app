@@ -1,5 +1,26 @@
 import NextAuth from "next-auth";
-import { authConfig } from "./auth.config"; // Import the separated config
+import type { DefaultSession, AuthOptions } from "next-auth";
+import GitHub from "next-auth/providers/github";
 
-// authConfig를 사용하여 NextAuth 핸들러와 auth 함수를 export
+// Augment the Session interface (minimal version needed for basic functionality)
+declare module "next-auth" {
+    interface Session {
+        user?: {
+            id?: string | null;
+        } & DefaultSession["user"];
+    }
+}
+
+export const authConfig: AuthOptions = {
+    providers: [
+        GitHub({
+            clientId: process.env.AUTH_GITHUB_ID ?? '',
+            clientSecret: process.env.AUTH_GITHUB_SECRET ?? '',
+        }),
+    ],
+    // Callbacks removed for testing Edge compatibility
+    // session: { strategy: "jwt" }, // Also removed for simplicity, defaults might work
+    // debug: false, // Explicitly set to false or remove
+};
+
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
