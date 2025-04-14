@@ -2,6 +2,15 @@
 import { type AuthOptions, type User, type DefaultSession, type Session } from "next-auth"; // Removed unused default NextAuth import
 import { JWT } from "next-auth/jwt"; // Import JWT type for callback
 import CredentialsProvider from "next-auth/providers/credentials"; // Import a provider for v4
+import { createClient } from '@supabase/supabase-js'; // Import Supabase client
+
+// Initialize Supabase Admin Client (server-side only)
+// TODO: Consider moving this to a separate utility file (e.g., src/lib/supabase.ts)
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
+);
 
 // Augment the default types to include the user ID
 declare module "next-auth" {
@@ -140,6 +149,64 @@ export const authOptions: AuthOptions = {
             }
             return session;
         },
+        // signIn callback: Called after successful sign-in, before redirect.
+        // We use this to save/update user data in Supabase.
+        async signIn({ user, account, profile }) {
+          console.log("--- signIn Callback Entered ---"); // Add log at the very beginning
+          // Only run this logic for the 'threads' provider
+          if (account?.provider === 'threads') {
+            console.log("[DEBUG] signIn callback triggered for threads provider");
+            console.log("[DEBUG] signIn user:", user);
+            console.log("[DEBUG] signIn account:", account);
+            console.log("[DEBUG] signIn profile:", profile); // Raw profile data from provider
+
+            try {
+              // Ensure necessary data exists from the account and user/profile objects
+              const threadsUserId = account.providerAccountId;
+              const accessToken = account.access_token;
+              // Use user.name which should be mapped from profile.username in the profile callback
+              const threadsUsername = user.name;
+
+              if (!threadsUserId || !accessToken || !threadsUsername) {
+                 console.error("[SIGNIN_CALLBACK] Missing required data for Supabase upsert", { threadsUserId, accessToken, threadsUsername });
+                 // Returning false would prevent the user from signing in
+                 // Decide if sign-in should fail if DB upsert fails
+                 return false;
+              }
+
+              console.log(`[SIGNIN_CALLBACK] Upserting user: ${threadsUserId}, username: ${threadsUsername}`);
+
+              const { error } = await supabaseAdmin
+                .from('threads_users')
+                .upsert(
+                  {
+                    threads_user_id: threadsUserId, // The unique ID from Threads
+                    threads_username: threadsUsername,
+                    access_token: accessToken, // Store the latest access token
+                    // 'id' (uuid PK), 'created_at', 'updated_at' are handled by DB defaults/triggers
+                  },
+                  {
+                    onConflict: 'threads_user_id', // If conflict on threads_user_id, update the row
+                  }
+                );
+
+              if (error) {
+                console.error('[SIGNIN_CALLBACK] Supabase upsert error:', error);
+                // Decide if sign-in should fail on DB error. Returning false stops sign-in.
+                return false;
+              }
+
+              console.log(`[SIGNIN_CALLBACK] Successfully upserted user ${threadsUserId} to Supabase.`);
+              return true; // Allow sign-in to proceed
+
+            } catch (err) {
+              console.error('[SIGNIN_CALLBACK] Unexpected error during Supabase upsert:', err);
+              return false; // Stop sign-in on unexpected errors
+            }
+          }
+          // Allow sign-in for other providers (if any) or if it's not an OAuth sign-in
+          return true;
+        }
     },
     // pages: { signIn: '/auth/signin' }, // Optional: Define custom pages if needed
 };
