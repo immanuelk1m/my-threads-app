@@ -1,2 +1,3 @@
-import { handlers } from "@/auth"; // auth.ts에서 export한 handlers
-export const { GET, POST } = handlers;
+import { GET, POST } from "@/auth"; // Import GET and POST directly
+
+export { GET, POST }; // Export GET and POST handlers
