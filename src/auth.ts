@@ -1,5 +1,5 @@
 import NextAuth from "next-auth";
-import type { Profile, User, Account, Session, DefaultSession, AuthOptions } from "next-auth"; // Removed unused TokenSet
+import type { Profile, User, Account, Session, DefaultSession, AuthOptions } from "next-auth";
 // Removed unused OAuthConfig import
 import type { JWT } from "next-auth/jwt";
 
@@ -80,13 +80,5 @@ export const authConfig: AuthOptions = {
     // debug: false, // Ensure debug is off
 };
 
-// Initialize NextAuth
-const {
-    handlers: { GET, POST }, // Destructure GET and POST from handlers
-    auth,
-    signIn,
-    signOut,
-} = NextAuth(authConfig);
-
-// Export handlers and auth functions individually
-export { GET, POST, auth, signIn, signOut };
+// Revert to exporting handlers object along with others
+export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);

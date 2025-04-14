@@ -1,3 +1,3 @@
-import { GET, POST } from "@/auth"; // Import GET and POST directly
+import { handlers } from "@/auth"; // Import handlers object
 
-export { GET, POST }; // Export GET and POST handlers
+export const { GET, POST } = handlers; // Destructure GET and POST from handlers
